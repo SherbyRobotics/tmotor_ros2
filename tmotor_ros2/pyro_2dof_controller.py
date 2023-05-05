@@ -101,6 +101,7 @@ class PyroRobotControllerNode(Node):
         # Start loop
         #self.pubish_joints_cmd_msg()
         
+        """
         # Start graphic
         self.animator = self.sys.get_animator()
         self.sys.l_domain = 0.6
@@ -112,6 +113,7 @@ class PyroRobotControllerNode(Node):
         # Graphic output Timer
         self.dt2        = 0.1
         self.timer2     = self.create_timer( self.dt2, self.timed_graphic )
+        """
 
         
     #######################################

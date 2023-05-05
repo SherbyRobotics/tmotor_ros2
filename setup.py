@@ -26,7 +26,8 @@ setup(
         'console_scripts': [
             "tmotor_ros2 = tmotor_ros2.tmotor_ros2:main",
             "basic_2dof_controller = tmotor_ros2.basic_2dof_controller:main",
-            "pyro_2dof_controller = tmotor_ros2.pyro_2dof_controller:main"
+            "pyro_2dof_controller = tmotor_ros2.pyro_2dof_controller:main",
+            "pyro_2dof_animator = tmotor_ros2.pyro_2dof_animator:main"
         ],
     },
 )

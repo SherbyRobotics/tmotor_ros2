@@ -35,7 +35,7 @@ class TmotorDriverNode(Node):
         self.tmotors = [CanMotorController(can_socket='can0', motor_id=0x01, socket_timeout=0.5), CanMotorController(can_socket='can0', motor_id=0x02, socket_timeout=0.5)]
         self.tmotors[0].change_motor_constants(-12.5, 12.5, -41.0, 41.0, 0, 500, 0, 50, -9.0, 9.0)
         self.tmotors[1].change_motor_constants(-12.5, 12.5, -41.0, 41.0, 0, 500, 0, 50, -9.0, 9.0)
-        self.tmotors_params = [ {'kp': 20, 'kd': 5} , {'kp': 20, 'kd': 5} ]
+        self.tmotors_params = [ {'kp': 20, 'kd': 5, 'vel_kp': 5, 'vel_ki': 2} , {'kp': 20, 'kd': 5, 'vel_kp': 5, 'vel_ki': 2} ]
         
 
         #################
@@ -100,20 +100,10 @@ class TmotorDriverNode(Node):
         
         else:
             
-            # axis limit for motor 1 : [-1 turn, 1 turn]
-            if self.motors_sensor_pos[1] > 6.5 and self.motors_cmd_vel[1] > 0:
-                self.motors_cmd_vel[1] = 0.0
-            if self.motors_sensor_pos[1] < -6.5 and self.motors_cmd_vel[1] < 0:
-                self.motors_cmd_vel[1] = 0.0
-
-            if self.motors_sensor_pos[1] > 6.5 and self.motors_cmd_tor[1] > 0:
-                self.motors_cmd_tor[1] = 0.0
-            if self.motors_sensor_pos[1] < -6.5 and self.motors_cmd_tor[1] < 0:
-                self.motors_cmd_tor[1] = 0.0
-            
+            # Send commonds to both motor and read sensor data
             # Send commonds to both motor and read sensor data
             for i in range(2):
-                print("motor # ", i , self.motors_cmd_mode[i])
+                
                 #################################################
                 if self.motors_cmd_mode[i] == 'disable':
 
@@ -144,6 +134,17 @@ class TmotorDriverNode(Node):
                 elif self.motors_cmd_mode[i] == 'damped_torque':
                     
                     self.motors_sensor_pos[i] , self.motors_sensor_vel[i], self.motors_sensor_tor[i] = self.tmotors[i].send_rad_command(0, 0, 0, 2.0, self.motors_cmd_tor[i])
+                    
+                #################################################   
+                elif self.motors_cmd_mode[i] == 'velocity_plus_torque':
+                    
+                    self.motors_sensor_pos[i] , self.motors_sensor_vel[i], self.motors_sensor_tor[i] = self.tmotors[i].send_rad_command(0, self.motors_cmd_vel[i], 0, self.tmotors_params[i]['kd'], self.motors_cmd_tor[i])
+                
+                #################################################   
+                elif self.motors_cmd_mode[i] == 'position_velocity_torque':
+                    
+                    self.motors_sensor_pos[i] , self.motors_sensor_vel[i], self.motors_sensor_tor[i] = self.tmotors[i].send_rad_command(self.motors_cmd_pos[i], self.motors_cmd_vel[i], self.tmotors_params[i]['vel_ki'], self.tmotors_params[i]['vel_kp'], self.motors_cmd_tor[i])
+        
                     
         
         

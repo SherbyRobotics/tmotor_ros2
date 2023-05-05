@@ -5,10 +5,13 @@
     <param name="dev" value="/dev/input/js0" />
   </node>
 
-  <node pkg="gro640_tmotor_controller" exec="pyro_controller" name="pyro_controller" output="screen">
+  <node pkg="tmotor_ros2" exec="pyro_2dof_controller" name="ctl" output="screen">
+  </node>
+  
+  <node pkg="tmotor_ros2" exec="pyro_2dof_animator" name="ani" output="screen">
   </node>
 
-  <node pkg="gro640_tmotor_controller" exec="tmotors" name="tmotors">
+  <node pkg="tmotor_ros2" exec="tmotor_ros2" name="tmotors">
   </node>
 
 </launch>
