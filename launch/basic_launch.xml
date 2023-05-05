@@ -1,0 +1,14 @@
+<launch>
+
+  <node pkg="joy" exec="joy_node" name="joy" >
+    <param name="deadzone" value="0.0" />
+    <param name="dev" value="/dev/input/js0" />
+  </node>
+
+  <node pkg="gro640_tmotor_controller" exec="controller" name="controller">
+  </node>
+
+  <node pkg="gro640_tmotor_controller" exec="tmotors" name="tmotors">
+  </node>
+
+</launch>
