@@ -4,6 +4,8 @@ import rclpy
 from rclpy.node import Node
 from rclpy.parameter import Parameter
 from motor_driver.canmotorlib import CanMotorController
+
+import time
 import numpy as np
 from sensor_msgs.msg import JointState
 
@@ -23,6 +25,9 @@ class TmotorDriverNode(Node):
         # Timer
         #self.dt         = 0.02
         #self.timer      = rclpy.Timer( rospy.Duration( self.dt ), self.timed_controller )
+
+        self.time_now = 0.0
+        self.time_last = 0.0
         
         #################
         # Paramters
@@ -50,7 +55,7 @@ class TmotorDriverNode(Node):
         self.tmotors = [CanMotorController(can_socket='can0', motor_id=motor1_id, socket_timeout=0.5), CanMotorController(can_socket='can0', motor_id=motor2_id, socket_timeout=0.5)]
         self.tmotors[0].change_motor_constants(-12.5, 12.5, -41.0, 41.0, 0, 500, 0, 50, -9.0, 9.0)
         self.tmotors[1].change_motor_constants(-12.5, 12.5, -41.0, 41.0, 0, 500, 0, 50, -9.0, 9.0)
-        self.tmotors_params = [ {'kp': 20, 'kd': 5} , {'kp': 20, 'kd': 5} ]
+        self.tmotors_params = [ {'kp': 20, 'kd': 5, 'vel_kp': 5, 'vel_ki': 2} , {'kp': 20, 'kd': 5, 'vel_kp': 5, 'vel_ki': 2} ]
         
 
         #################
@@ -87,10 +92,18 @@ class TmotorDriverNode(Node):
     def send_cmd_to_tmotors(self):
         """ """
         
+
+        self.time_now  = time.time()
+        dt = float(self.time_now - self.time_last) # loop period            
+        self.time_last = self.time_now #
+        
         if self.offline_debug:
             
             # Kinematic model for debug
-            dt = 0.002
+            
+
+            logMsg = str(dt)                
+            # self.get_logger().info(logMsg)
             
             for i in range(2):
                 
@@ -126,9 +139,10 @@ class TmotorDriverNode(Node):
             if self.motors_sensor_pos[1] < -6.5 and self.motors_cmd_tor[1] < 0:
                 self.motors_cmd_tor[1] = 0.0
             
-            # Send commonds to both motor and read sensor data
+            # Send commands to both motor and read sensor data
             for i in range(2):
-                print("motor # ", i , self.motors_cmd_mode[i])
+                logMsg = ("motor # "+ str(i) + str(self.motors_cmd_vel[i]))               
+                # self.get_logger().info(logMsg)
                 #################################################
                 if self.motors_cmd_mode[i] == 'disable':
 
@@ -146,7 +160,7 @@ class TmotorDriverNode(Node):
                     self.motors_sensor_pos[i] , self.motors_sensor_vel[i], self.motors_sensor_tor[i] = self.tmotors[i].send_rad_command(self.motors_cmd_pos[i], 0, self.tmotors_params[i]['kp'], self.tmotors_params[i]['kd'], 0)
                     
                 #################################################  
-                elif self.motors_cmd_mode[i] == 'velocity':
+                elif self.motors_cmd_mode[i] == 'velocity':          
                     
                     self.motors_sensor_pos[i] , self.motors_sensor_vel[i], self.motors_sensor_tor[i] = self.tmotors[i].send_rad_command(0, self.motors_cmd_vel[i], 0, self.tmotors_params[i]['kd'], 0)
                     
@@ -160,9 +174,20 @@ class TmotorDriverNode(Node):
                     
                     self.motors_sensor_pos[i] , self.motors_sensor_vel[i], self.motors_sensor_tor[i] = self.tmotors[i].send_rad_command(0, 0, 0, 2.0, self.motors_cmd_tor[i])
         
+                #################################################   
+                elif self.motors_cmd_mode[i] == 'velocity_plus_torque':
+                    
+                    self.motors_sensor_pos[i] , self.motors_sensor_vel[i], self.motors_sensor_tor[i] = self.tmotors[i].send_rad_command(0, self.motors_cmd_vel[i], 0, self.tmotors_params[i]['kd'], self.motors_cmd_tor[i])
+                
+                #################################################   
+                elif self.motors_cmd_mode[i] == 'position_velocity_torque':
+                    
+                    self.motors_sensor_pos[i] , self.motors_sensor_vel[i], self.motors_sensor_tor[i] = self.tmotors[i].send_rad_command(self.motors_cmd_pos[i], self.motors_cmd_vel[i], self.tmotors_params[i]['vel_ki'], self.tmotors_params[i]['vel_kp'], self.motors_cmd_tor[i])
         
+        
+        # logMsg = str(1/(time.time() - self.time_now))                
+        # self.get_logger().info(logMsg)
         self.publish_sensor_data()
-        #print("publication après send command to motors")
 
     ##########################################################################################
     def publish_sensor_data(self):

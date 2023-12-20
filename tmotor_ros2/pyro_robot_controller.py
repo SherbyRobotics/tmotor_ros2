@@ -2,10 +2,14 @@
 
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor 
+from rclpy.callback_groups import ReentrantCallbackGroup
+
 import numpy as np
 import time
 import matplotlib
 import matplotlib.pyplot as plt
+from PyQt5.QtCore import QCoreApplication
 from threading import Thread
 
 from sensor_msgs.msg import Joy
@@ -27,14 +31,17 @@ class RobotController(Node):
         self.sub_sensor = self.create_subscription(JointState, 'joints_sensor', self.read_joints, 1)
 
         # Init publishers
-        self.pub_cmd = self.create_publisher(JointState, 'joints_cmd', 10)
+        self.pub_cmd = self.create_publisher(JointState, 'joints_cmd', 1)
 
+        # Timers and rates
 
-        self.controller_update_period = 0.002 # careful when changing this value to change dt in tmotor_ros2.py
+        self.controller_update_period = 0.002    # careful when changing this value to change dt in tmotor_ros2.py
         self.timer = self.create_timer(self.controller_update_period, self.timed_controller) 
 
         self.graphic_update_period = 0.01
-        self.timer2 = self.create_timer(self.graphic_update_period, self.timed_graphic) 
+        self.log_update_period = 0.3
+        self.log_last_update = 0.0
+        # self.timer2 = self.create_timer(self.graphic_update_period, self.timed_graphic) 
 
         #################
         # Parameters
@@ -368,9 +375,10 @@ class RobotController(Node):
                 self.motors_cmd_mode = ['torque','torque']
 
         
-        self.get_logger().info(str(dt))
-            
         self.publish_joints_cmd_msg()
+        logMsg = str(dt)
+            
+        # self.get_logger().info(logMsg)
 
     def read_joy(self, joy_msg):
         self.user_ref        = [ joy_msg.axes[1] , joy_msg.axes[4] ]   # Up-down [left,right] joystick 
@@ -463,22 +471,18 @@ class RobotController(Node):
 
     def timed_graphic(self):
         
-        # logMsg = 'Control mode = ' + str(self.controller_mode_name) + '\t q = ' + str(self.q)
-        logMsg = 'Control mode = {}\t q = {:.3f}, {:.3f}'.format(self.controller_mode_name, self.q[0], self.q[1])
+        if time.time() - self.log_last_update >= self.log_update_period:
+            logMsg = 'Control mode = {}\t q = {:.3f}, {:.3f}'.format(self.controller_mode_name, self.q[0], self.q[1])
+            self.get_logger().info(logMsg)
+            self.log_last_update = time.time()
 
-        #self.get_logger().info(logMsg)
         self.animator.show_plus_update( self.x, self.u, 0.0 )
-        plt.pause(0.001)
+        QCoreApplication.processEvents()
 
 
 
-def controller_thread(node,controller_update_period,controller_last_update):
-        
-    while rclpy.ok():
-        if time.time() - controller_last_update >= controller_update_period:
-            node.timed_controller()
-            rclpy.spin_once(node, timeout_sec = 0.001)
-            controller_last_update = time.time()
+def controller_thread(node):
+        rclpy.spin(node)
             
 
 def main():
@@ -486,27 +490,23 @@ def main():
     matplotlib.use('Qt5Agg')
     rclpy.init()
 
-    # controller_update_period = 0.02
-    # controller_last_update = time.time()
-
-    # graphic_update_period = 0.03
-    # graphic_last_update = time.time()
-
     node = RobotController()
+
+    controller_thread_instance = Thread(target=controller_thread, args=(node,))
+    controller_thread_instance.start()
+
     # Set the graphic update rate (e.g., every 0.1 seconds)
+    graphic_last_update = time.time()
 
-    # controllerThread = Thread(target=controller_thread, args=(node,controller_update_period,controller_last_update))
-    # controllerThread.start()
+    while rclpy.ok():
 
-    # while rclpy.ok():
-    #     if time.time() - graphic_last_update >= graphic_update_period:
-    #         node.timed_graphic()
-    #         graphic_last_update = time.time()
+        # Check if it's time to perform graphic updates
+        if time.time() - graphic_last_update >= node.graphic_update_period:
+            node.timed_graphic()
+            graphic_last_update = time.time()
+        
 
-    # controllerThread.join()
-
-    rclpy.spin(node)
-    rclpy.shutdown()
+    controller_thread_instance.join()
 
 if __name__ == '__main__':
     main()
