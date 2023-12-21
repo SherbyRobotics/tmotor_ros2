@@ -2,8 +2,6 @@
 
 Warning: Experimental code !!
 
-This package is 3 components:
-
 ## Overview
 This ROS 2 package, tmotor_ros2, facilitates the control of a robot featuring a two-link robot arm. The package encompasses components for both joystick-based manual control and a computed torque controller.
 
