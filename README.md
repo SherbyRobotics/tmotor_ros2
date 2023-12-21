@@ -7,6 +7,11 @@ This package is 3 components:
 ## Overview
 This ROS 2 package, tmotor_ros2, facilitates the control of a robot featuring a two-link robot arm. The package encompasses components for both joystick-based manual control and a computed torque controller.
 
+## Demo
+
+A 2 DoF arm using this code is demonstrated in this video:
+https://youtu.be/Cbtk6y84C6I
+
 ## Requirements
 - ROS2
 - Python 3
