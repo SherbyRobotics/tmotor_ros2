@@ -50,14 +50,15 @@ class RobotController(Node):
         # Robot model
         #self.sys         = pendulum.DoublePendulum()
         self.sys         = manipulator.TwoLinkManipulator()
-        self.sys.l1      = 0.4
-        self.sys.l2      = 0.3
-        self.sys.lc1     = 0.4
-        self.sys.lc2     = 0.3
-        self.sys.I1      = 0.05
-        self.sys.I2      = 0.05
-        self.sys.m1      = 0.6
-        self.sys.m2      = 0.03
+        self.sys.l1      = 0.34
+        self.sys.l2      = 0.40
+        self.sys.lc1     = 0.32
+        self.sys.lc2     = 0.09
+        self.sys.I1      = 0.5
+        self.sys.I2      = 0.2
+        self.sys.m1      = 0.8
+        self.sys.m2      = 0.05
+
         self.sys.d1      = 0.0
         self.sys.d2      = 0.0
         self.sys.u_lb[0] = -1.0
@@ -125,7 +126,7 @@ class RobotController(Node):
                 
         # Start graphic
         self.animator = self.sys.get_animator()
-        self.sys.l_domain = 0.7
+        self.sys.l_domain = 0.9
         #self.animator.show( self.q )
         self.animator.show_plus( self.x , self.u, 0.0 )
         self.animator.showfig.canvas.draw()
@@ -208,7 +209,7 @@ class RobotController(Node):
                 
                 x  = self.x 
                 r  = np.array([0.0,0.0]) 
-                u  = self.sys.g( self.q ) * ( 1.0 - user[0] )
+                u  = self.sys.g( self.q )
                 
                 self.motors_cmd_tor[0] = u[1]
                 self.motors_cmd_tor[1] = u[0]
@@ -302,19 +303,129 @@ class RobotController(Node):
             
             ####################################################
             elif ( self.controller_mode == 7 ):
-                self.controller_mode_name = 'empty'
+                self.controller_mode_name = 'Labo2 2'
                 
-                self.motors_cmd_tor[0] = 0.0
-                self.motors_cmd_tor[1] = 0.0
-                self.motors_cmd_mode = ['torque','torque']
+                r    = self.sys.forward_kinematic_effector( self.q )
+                J = self.sys.J( self.q )
+
+                # Compute the reference
+                r_d  = np.zeros(2) # Place-holder
+                dr_d = np.zeros(2) # Place-holder
+
+                v = 0.3
+                a = 0.3
+
+                d1 = 2/10
+                d2 = np.sqrt( 3**2 + 3**2 )/10
+                d3 = 2/10
+
+                s1 = v**2/(2*a)
+                s2 = d1 - s1
+                s3 = d1
+
+
+                t1 = (a*d1 + v**2)/(a*v)
+                t2 = (a*d2 + v**2)/(a*v)
+                t3 = (a*d3 + v**2)/(a*v)
+
+
+                if t < t1:
+                    t = t - 0
+                    if t < v/a :
+                        v_d = a*t
+                    elif t < t1 - v/a:
+                        v_d = v
+                    else:
+                        v_d = a*(t1 -t)
+
+                    dr_d = v_d * np.array([-1, 0])
+
+                elif t < t2 + t1:
+                    t = t - t1
+                    if t < v/a :
+                        v_d = a*t
+                    elif t < t2 - v/a:
+                        v_d = v
+                    else:
+                        v_d = a*(t2 -t)
+
+                    dr_d = v_d * np.array([-1,1]) * np.sqrt(2)/2
+
+                elif t < t3 + t2 + t1:
+                    t = t - t2 - t1
+                    if t < v/a :
+                        v_d = a*t
+                    elif t < t3 - v/a:
+                        v_d = v
+                    else:
+                        v_d = a*(t3 -t)
+
+                    dr_d = v_d * np.array([0, 1])
+
+
+                # Compute the desired effector velocity
+                dr_r = dr_d
+
+                # From effector speed to joint speed
+                dq = np.linalg.inv( J ) @ dr_r
+
+                ##########################################
+                                
+                # Target velocity
+                self.motors_cmd_vel[0] = dq[1]
+                self.motors_cmd_vel[1] = dq[0]
+                
+                # Gravity compensation
+                u  = self.sys.g( self.q )
+                self.motors_cmd_tor[0] = u[1]
+                self.motors_cmd_tor[1] = u[0]
+                
+                # Integral action
+                self.motors_cmd_pos[0] = self.last_target_position[0] + self.motors_cmd_vel[0] * dt
+                self.motors_cmd_pos[1] = self.last_target_position[1] + self.motors_cmd_vel[1] * dt
+                
+                self.last_target_position = self.motors_cmd_pos
+                
+                self.motors_cmd_mode   = ['position_velocity_torque','position_velocity_torque']
                 
             ####################################################
             elif ( self.controller_mode == 8 ):
-                self.controller_mode_name = 'empty'
                 
-                self.motors_cmd_tor[0] = 0.0
-                self.motors_cmd_tor[1] = 0.0
-                self.motors_cmd_mode = ['torque','torque']
+                self.controller_mode_name = 'Labo2 2 etudiants'
+                
+                r    = self.sys.forward_kinematic_effector( self.q )
+                J = self.sys.J( self.q )
+
+                # Compute the reference
+                r_d  = np.zeros(2) # Place-holder
+                dr_d = np.zeros(2) # Place-holder
+
+                ##############################
+                # YOUR CODE BELLOW !!
+                ##############################
+
+
+
+                ##############################
+                # OUTPUTS
+                ##############################
+                                
+                # Target velocity
+                self.motors_cmd_vel[0] = dq[1]
+                self.motors_cmd_vel[1] = dq[0]
+                
+                # Gravity compensation
+                u  = self.sys.g( self.q )
+                self.motors_cmd_tor[0] = u[1]
+                self.motors_cmd_tor[1] = u[0]
+                
+                # Integral action
+                self.motors_cmd_pos[0] = self.last_target_position[0] + self.motors_cmd_vel[0] * dt
+                self.motors_cmd_pos[1] = self.last_target_position[1] + self.motors_cmd_vel[1] * dt
+                
+                self.last_target_position = self.motors_cmd_pos
+                
+                self.motors_cmd_mode   = ['position_velocity_torque','position_velocity_torque']
                 
             ####################################################
             elif ( self.controller_mode == 9 ):

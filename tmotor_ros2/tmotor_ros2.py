@@ -35,7 +35,7 @@ class TmotorDriverNode(Node):
         
         self.offline_debug = False
         # Inside your class or function where you want to get the parameter value
-        self.declare_parameter('inverted', rclpy.Parameter.Type.BOOL)
+        self.declare_parameter('inverted', False)
         self.inverted = self.get_parameter('inverted').get_parameter_value().bool_value
         logMsg = 'inverted axes = ' + str(self.inverted)
         self.get_logger().info(logMsg)
@@ -55,7 +55,7 @@ class TmotorDriverNode(Node):
         self.tmotors = [CanMotorController(can_socket='can0', motor_id=motor1_id, socket_timeout=0.5), CanMotorController(can_socket='can0', motor_id=motor2_id, socket_timeout=0.5)]
         self.tmotors[0].change_motor_constants(-12.5, 12.5, -41.0, 41.0, 0, 500, 0, 50, -9.0, 9.0)
         self.tmotors[1].change_motor_constants(-12.5, 12.5, -41.0, 41.0, 0, 500, 0, 50, -9.0, 9.0)
-        self.tmotors_params = [ {'kp': 20, 'kd': 5, 'vel_kp': 5, 'vel_ki': 2} , {'kp': 20, 'kd': 5, 'vel_kp': 5, 'vel_ki': 2} ]
+        self.tmotors_params = [ {'kp': 5, 'kd': 5, 'vel_kp': 5, 'vel_ki': 2} , {'kp': 5, 'kd': 5, 'vel_kp': 5, 'vel_ki': 2} ]
         
 
         #################
@@ -105,7 +105,7 @@ class TmotorDriverNode(Node):
             logMsg = str(dt)                
             # self.get_logger().info(logMsg)
             
-            for i in range(2):
+            for i in range(1):
                 
                 #################################################
                 if self.motors_cmd_mode[i] == 'position':
@@ -129,15 +129,60 @@ class TmotorDriverNode(Node):
         else:
             
             # axis limit for motor 1 : [-1 turn, 1 turn]
+            if self.motors_sensor_pos[0] > 6.5 and self.motors_cmd_vel[0] > 0:
+                self.motors_cmd_vel[0] = 0.0
+            if self.motors_sensor_pos[0] < -6.5 and self.motors_cmd_vel[0] < 0:
+                self.motors_cmd_vel[0] = 0.0
+
+            if self.motors_sensor_pos[0] > 6.5 and self.motors_cmd_tor[0] > 0:
+                self.motors_cmd_tor[0] = 0.0
+            if self.motors_sensor_pos[0] < -6.5 and self.motors_cmd_tor[0] < 0:
+                self.motors_cmd_tor[0] = 0.0
+
+            if self.motors_sensor_vel[0] > 6.5 and self.motors_cmd_tor[0] > 0:
+                self.motors_cmd_tor[0] = 0.0
+                self.motors_cmd_vel[0] = 6.0
+            if self.motors_sensor_vel[0] < -6.5 and self.motors_cmd_tor[0] < 0:
+                self.motors_cmd_tor[0] = 0.0
+                self.motors_cmd_vel[0] = -6.0
+
+            if self.motors_cmd_vel[0] > 6.0:
+                self.motors_cmd_vel[0] = 6.0
+            if self.motors_cmd_vel[0] < -6.0:
+                self.motors_cmd_vel[0] = -6.0
+
+            if self.motors_cmd_tor[0] > 2.0:
+                self.motors_cmd_tor[0] = 2.0
+            if self.motors_cmd_tor[0] < -2.0:
+                self.motors_cmd_tor[0] = -2.0
+
+
             if self.motors_sensor_pos[1] > 6.5 and self.motors_cmd_vel[1] > 0:
                 self.motors_cmd_vel[1] = 0.0
             if self.motors_sensor_pos[1] < -6.5 and self.motors_cmd_vel[1] < 0:
                 self.motors_cmd_vel[1] = 0.0
 
-            if self.motors_sensor_pos[1] > 6.5 and self.motors_cmd_tor[1] > 0:
+            # if self.motors_sensor_pos[1] > 6.5 and self.motors_cmd_tor[1] > 0:
+            #     self.motors_cmd_tor[1] = 0.0
+            # if self.motors_sensor_pos[1] < -6.5 and self.motors_cmd_tor[1] < 0:
+            #     self.motors_cmd_tor[1] = 0.0
+
+            if self.motors_sensor_vel[1] > 12.2 and self.motors_cmd_tor[1] > 0:
                 self.motors_cmd_tor[1] = 0.0
-            if self.motors_sensor_pos[1] < -6.5 and self.motors_cmd_tor[1] < 0:
+                self.motors_cmd_vel[1] = 3.0
+            if self.motors_sensor_vel[1] < -12.2 and self.motors_cmd_tor[1] < 0:
                 self.motors_cmd_tor[1] = 0.0
+                self.motors_cmd_vel[1] = -3.0
+
+            if self.motors_cmd_vel[1] > 3.0:
+                self.motors_cmd_vel[1] = 3.0
+            if self.motors_cmd_vel[1] < -3.0:
+                self.motors_cmd_vel[1] = -3.0
+
+            if self.motors_cmd_tor[1] > 3.0:
+                self.motors_cmd_tor[1] = 3.0
+            if self.motors_cmd_tor[1] < -3.0:
+                self.motors_cmd_tor[1] = -3.0
             
             # Send commands to both motor and read sensor data
             for i in range(2):
@@ -156,6 +201,13 @@ class TmotorDriverNode(Node):
 
                 #################################################
                 elif self.motors_cmd_mode[i] == 'position':
+
+                    if self.motors_sensor_vel[i] > 2.1 and self.motors_cmd_pos[i] - self.motors_sensor_pos[i] > 0:
+                        self.tmotors_params[i]['kp'] = 0.0
+                        self.motors_cmd_vel[i] = 2.0
+                    if self.motors_sensor_vel[i] < -2.1 and self.motors_cmd_pos[i] - self.motors_sensor_pos[i] < 0:
+                        self.tmotors_params[i]['kp'] = 0.0
+                        self.motors_cmd_vel[i] = -2.0
 
                     self.motors_sensor_pos[i] , self.motors_sensor_vel[i], self.motors_sensor_tor[i] = self.tmotors[i].send_rad_command(self.motors_cmd_pos[i], 0, self.tmotors_params[i]['kp'], self.tmotors_params[i]['kd'], 0)
                     

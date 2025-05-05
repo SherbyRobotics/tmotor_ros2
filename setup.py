@@ -22,7 +22,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "tmotor_ros2 = tmotor_ros2.tmotor_ros2:main",
+            # "tmotor_ros2 = tmotor_ros2.tmotor_ros2:main",
+            "tmotor_ros2 = tmotor_ros2.tmotor_ros2_1motor:main",
             "basic_2dof_controller = tmotor_ros2.basic_robot_controller:main",
             "pyro_2dof_controller = tmotor_ros2.pyro_robot_controller:main"        
         ],
