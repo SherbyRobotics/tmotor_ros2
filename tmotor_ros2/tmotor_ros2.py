@@ -35,7 +35,7 @@ class TmotorDriverNode(Node):
         
         self.offline_debug = False
         # Inside your class or function where you want to get the parameter value
-        self.declare_parameter('inverted', rclpy.Parameter.Type.BOOL)
+        self.declare_parameter('inverted',False)
         self.inverted = self.get_parameter('inverted').get_parameter_value().bool_value
         logMsg = 'inverted axes = ' + str(self.inverted)
         self.get_logger().info(logMsg)
