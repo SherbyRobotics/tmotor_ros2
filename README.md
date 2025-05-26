@@ -12,7 +12,7 @@ This ROS 2 package, tmotor_ros2, facilitates the control of a robot featuring a 
 - Mini-cheetah-tmotor-python-can 
 - Qt5
 - Bitstring
-- Pyro -- branch dev-proto-tmotor (optional for advanced control modes)
+- Pyro -- **branch dev-proto-tmotor** (optional for advanced control modes)
 
 
 ## Installation

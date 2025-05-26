@@ -596,7 +596,7 @@ def controller_thread(node):
         rclpy.spin(node)
             
 
-def main():
+def main(): 
     plt.ion()
     matplotlib.use('Qt5Agg')
     rclpy.init()
@@ -618,6 +618,8 @@ def main():
         
 
     controller_thread_instance.join()
+    node.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
